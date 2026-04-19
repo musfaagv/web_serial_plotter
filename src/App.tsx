@@ -19,6 +19,8 @@ import Footer from './components/Footer'
 import { exportChartData, type ChartExportOptions } from './utils/chartExport'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
+import { parseDataLine, parseHeaderLine } from './utils/lineParsing'
+import { parseUltrasonicPayload } from './utils/wsPayload'
 
 function App() {
   const store = useDataStore()
@@ -65,26 +67,37 @@ function App() {
     d.drive()
   }, [tourSteps])
 
+  const hasSetUltrasonicSeriesRef = useRef(false)
+
   const handleIncomingLine = useCallback((line: string) => {
     setLastLine(line)
-    
-    // Send to console store (always log all incoming data)
+
+    // Always log raw incoming payload for debugging.
     consoleStore.addIncoming(line)
-    
-    // Parse for chart (existing logic)
-    if (line.trim().startsWith('#')) {
-      const names = line.replace(/^\(/, '').replace(/\)$/, '').replace(/^\s*#+\s*/, '').split(/[\s,\t]+/).filter(Boolean)
-      if (names.length > 0) store.setSeries(names)
+
+    // WebSocket JSON mode: support ultrasonic payloads.
+    const ultrasonicPayload = parseUltrasonicPayload(line)
+    if (ultrasonicPayload) {
+      if (!hasSetUltrasonicSeriesRef.current) {
+        store.setSeries(['cm', 'inch'])
+        hasSetUltrasonicSeriesRef.current = true
+      }
+      store.append([ultrasonicPayload.cm, ultrasonicPayload.inch])
       return
     }
-    const parts = line.trim().replace(/^\(/, '').replace(/\)$/, '').split(/[\s,\t]+/).filter(Boolean)
-    if (parts.length === 0) return
-    const values: number[] = []
-    for (const p of parts) {
-      const v = Number(p)
-      if (Number.isFinite(v)) values.push(v)
+
+    // Fallback: existing line-based parser.
+    const normalizedLine = line.replace(/^\(/, '').replace(/\)$/, '')
+    const header = parseHeaderLine(normalizedLine)
+    if (header && header.length > 0) {
+      store.setSeries(header)
+      return
     }
-    if (values.length > 0) store.append(values)
+
+    const values = parseDataLine(normalizedLine)
+    if (!values) return
+    const finiteValues = values.filter((v) => Number.isFinite(v))
+    if (finiteValues.length > 0) store.append(finiteValues)
   }, [store, consoleStore])
 
   const dataConnection = useDataConnection(handleIncomingLine)
@@ -281,6 +294,7 @@ function App() {
             <div className="flex-1 min-h-0">
               <SerialConsole 
                 isConnected={dataConnection.state.isConnected}
+                connectionType={dataConnection.state.type}
                 onSendMessage={dataConnection.write}
               />
             </div>

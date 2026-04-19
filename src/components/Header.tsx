@@ -2,12 +2,13 @@ import { useState } from 'react'
 import Button from './ui/Button'
 import { PlayIcon, StopIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import ConnectModal from './ConnectModal'
-import type { ConnectionState, ConnectionType, SerialConfig } from '../hooks/useDataConnection'
+import type { ConnectionState, ConnectionType, SerialConfig, WebSocketConfig } from '../hooks/useDataConnection'
 import type { GeneratorConfig } from '../hooks/useSignalGenerator'
 
 interface Props {
   connectionState: ConnectionState
   onConnectSerial: (config: SerialConfig) => Promise<void>
+  onConnectWebSocket: (config: WebSocketConfig) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
   onDisconnect: () => Promise<void>
   generatorConfig: GeneratorConfig
@@ -24,6 +25,7 @@ function getConnectionText(state: ConnectionState) {
   if (state.isConnecting) return 'Connecting...'
   if (state.isConnected) {
     if (state.type === 'serial') return 'Serial Connected'
+    if (state.type === 'websocket') return 'WebSocket Connected'
     if (state.type === 'generator') return 'Generator Running'
     return 'Connected'
   }
@@ -41,6 +43,7 @@ function getButtonVariant(state: ConnectionState) {
 export function Header({ 
   connectionState, 
   onConnectSerial, 
+  onConnectWebSocket,
   onConnectGenerator, 
   onDisconnect, 
   generatorConfig 
@@ -88,6 +91,7 @@ export function Header({
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onConnectSerial={onConnectSerial}
+        onConnectWebSocket={onConnectWebSocket}
         onConnectGenerator={onConnectGenerator}
         isConnecting={connectionState.isConnecting}
         isSupported={connectionState.isSupported}
@@ -98,5 +102,4 @@ export function Header({
 }
 
 export default Header
-
 

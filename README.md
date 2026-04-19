@@ -70,7 +70,7 @@ Your support helps maintain and improve this tool for the entire community!
 
 ✅ **Serial Console**
 - Dual-tab interface (Chart/Console views)
-- Bidirectional communication with serial devices
+- Bidirectional communication with serial devices **and WebSocket sources**
 - Send text commands to devices
 - View raw incoming/outgoing data streams
 - Message export in multiple formats (TXT, CSV, JSON)
@@ -123,6 +123,12 @@ Open the printed local URL (Vite default is `http://localhost:5173`).
 1. Click **"Connect"** and choose your serial device when prompted
 2. Select the appropriate **baud rate** for your device
 3. Start streaming data - the app supports CSV, space, or tab-separated values
+
+### WebSocket Connection (ESP32 via local server)
+1. Jalankan WebSocket server di laptop Anda (contoh `ws://192.168.1.10:81`).
+2. Pastikan laptop dan ESP32 berada di jaringan Wi-Fi yang sama.
+3. Klik **Connect → WebSocket**, isi URL server, lalu klik **Connect WebSocket**.
+4. Data masuk akan diparse seperti data serial, dan tab Console juga bisa mengirim data balik lewat WebSocket.
 
 ### Data Format
 Your device should send lines of numeric data:
@@ -255,4 +261,3 @@ Ideas, issues, and pull requests are welcome. If you're testing with specific ha
 This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
 
 **Summary**: This is free and open-source software. You can redistribute and modify it under the GPL v3 terms, ensuring it remains free software for all users.
-

@@ -6,10 +6,11 @@ import { exportMessages, type ExportFormat } from '../utils/consoleExport'
 
 interface SerialConsoleProps {
   isConnected: boolean
+  connectionType: 'serial' | 'websocket' | 'generator' | null
   onSendMessage: (message: string) => Promise<void>
 }
 
-export default function SerialConsole({ isConnected, onSendMessage }: SerialConsoleProps) {
+export default function SerialConsole({ isConnected, connectionType, onSendMessage }: SerialConsoleProps) {
   const { messages, addOutgoing, clear, getCapacity, setCapacity } = useConsoleStore()
   const [showSettings, setShowSettings] = useState(false)
   const [capacityInput, setCapacityInput] = useState(getCapacity().toString())
@@ -19,10 +20,13 @@ export default function SerialConsole({ isConnected, onSendMessage }: SerialCons
     try {
       // Check if message is a control character (ASCII 0-31)
       const isControlChar = message.length === 1 && message.charCodeAt(0) < 32
-      
-      // Add newline to message if not present (unless it's a control character)
-      const messageToSend = isControlChar ? message : (message.endsWith('\n') ? message : message + '\n')
-      
+      const isWebSocketMode = connectionType === 'websocket'
+
+      // Keep WebSocket payload exact (e.g. JSON commands). Serial keeps newline behavior.
+      const messageToSend = isControlChar || isWebSocketMode
+        ? message
+        : (message.endsWith('\n') ? message : message + '\n')
+
       // Log outgoing message with readable name for control chars
       if (isControlChar) {
         const code = message.charCodeAt(0)
@@ -31,14 +35,13 @@ export default function SerialConsole({ isConnected, onSendMessage }: SerialCons
       } else {
         addOutgoing(message)
       }
-      
-      // Send via serial
+
       await onSendMessage(messageToSend)
     } catch (error) {
       // Log error
       addOutgoing(`Error: ${error instanceof Error ? error.message : 'Failed to send'}`, 'error')
     }
-  }, [onSendMessage, addOutgoing])
+  }, [connectionType, onSendMessage, addOutgoing])
 
   const handleCapacityChange = useCallback(() => {
     const newCapacity = parseInt(capacityInput, 10)
@@ -170,6 +173,7 @@ export default function SerialConsole({ isConnected, onSendMessage }: SerialCons
       <ConsoleInput 
         onSend={handleSendMessage}
         disabled={!isConnected}
+        connectionType={connectionType}
       />
     </div>
   )

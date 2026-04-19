@@ -1,16 +1,29 @@
-import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
+import { useState, useRef, useCallback, useMemo, type KeyboardEvent } from 'react'
 
 interface ConsoleInputProps {
   onSend: (message: string) => void
   disabled?: boolean
+  connectionType?: 'serial' | 'websocket' | 'generator' | null
 }
 
-export default function ConsoleInput({ onSend, disabled = false }: ConsoleInputProps) {
+export default function ConsoleInput({ onSend, disabled = false, connectionType = null }: ConsoleInputProps) {
   const [input, setInput] = useState('')
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
 
+
+  const wsJsonValidation = useMemo(() => {
+    if (connectionType !== 'websocket') return null
+    const trimmed = input.trim()
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null
+    try {
+      JSON.parse(trimmed)
+      return null
+    } catch {
+      return 'WS hint: JSON terlihat belum valid, tetap bisa dikirim manual.'
+    }
+  }, [connectionType, input])
   const handleSend = useCallback(() => {
     if (!input.trim() || disabled) return
 
@@ -83,10 +96,15 @@ export default function ConsoleInput({ onSend, disabled = false }: ConsoleInputP
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={disabled ? "Not connected" : "Type command and press Enter (Ctrl-C, Ctrl-D supported)..."}
+        placeholder={disabled ? "Not connected" : connectionType === 'websocket' ? "Type WS payload (JSON/text) and press Enter..." : "Type command and press Enter (Ctrl-C, Ctrl-D supported)..."}
         disabled={disabled}
         className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
       />
+      {wsJsonValidation && (
+        <div className="text-xs text-amber-600 dark:text-amber-400 self-center">
+          {wsJsonValidation}
+        </div>
+      )}
       <button
         onClick={() => sendControlChar('C')}
         disabled={disabled}

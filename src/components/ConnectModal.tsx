@@ -4,7 +4,7 @@ import Button from './ui/Button'
 import Input from './ui/Input'
 import Select from './ui/Select'
 import Checkbox from './ui/Checkbox'
-import type { SerialConfig, ConnectionType } from '../hooks/useDataConnection'
+import type { SerialConfig, WebSocketConfig, ConnectionType } from '../hooks/useDataConnection'
 import type { GeneratorConfig } from '../hooks/useSignalGenerator'
 import { DEFAULT_SERIAL_CONFIG } from '../hooks/useDataConnection'
 
@@ -12,6 +12,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onConnectSerial: (config: SerialConfig) => Promise<void>
+  onConnectWebSocket: (config: WebSocketConfig) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
   isConnecting: boolean
   isSupported: boolean
@@ -24,6 +25,7 @@ export function ConnectModal({
   isOpen,
   onClose,
   onConnectSerial,
+  onConnectWebSocket,
   onConnectGenerator,
   isConnecting,
   isSupported,
@@ -31,6 +33,7 @@ export function ConnectModal({
 }: Props) {
   const [activeTab, setActiveTab] = useState<ConnectionType>('serial')
   const [serialConfig, setSerialConfig] = useState<SerialConfig>(DEFAULT_SERIAL_CONFIG)
+  const [webSocketConfig, setWebSocketConfig] = useState<WebSocketConfig>({ url: 'ws://localhost:81' })
   const [localGeneratorConfig, setLocalGeneratorConfig] = useState<GeneratorConfig>(generatorConfig)
 
   if (!isOpen) return null
@@ -47,6 +50,15 @@ export function ConnectModal({
   const handleGeneratorConnect = async () => {
     try {
       await onConnectGenerator(localGeneratorConfig)
+      onClose()
+    } catch {
+      // Keep modal open on error so user can try again
+    }
+  }
+
+  const handleWebSocketConnect = async () => {
+    try {
+      await onConnectWebSocket(webSocketConfig)
       onClose()
     } catch {
       // Keep modal open on error so user can try again
@@ -90,6 +102,17 @@ export function ConnectModal({
           >
             <SignalIcon className="w-4 h-4" />
             Signal Generator
+          </button>
+          <button
+            onClick={() => setActiveTab('websocket')}
+            className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+              activeTab === 'websocket'
+                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <WifiIcon className="w-4 h-4" />
+            WebSocket
           </button>
         </div>
 
@@ -277,6 +300,36 @@ export function ConnectModal({
                   className="w-full"
                 >
                   Start Signal Generator
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'websocket' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-blue-800 dark:text-blue-200 text-sm">
+                  Hubungkan ke WebSocket server lokal di laptop (contoh: <code>ws://192.168.1.10:81</code>) yang berada pada jaringan Wi-Fi yang sama dengan ESP32.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">WebSocket URL</label>
+                <Input
+                  value={webSocketConfig.url}
+                  onChange={(e) => setWebSocketConfig({ url: e.target.value })}
+                  placeholder="ws://localhost:81"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-neutral-700">
+                <Button
+                  variant="primary"
+                  onClick={handleWebSocketConnect}
+                  disabled={isConnecting || webSocketConfig.url.trim().length === 0}
+                  className="w-full"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect WebSocket'}
                 </Button>
               </div>
             </div>

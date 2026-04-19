@@ -8,6 +8,17 @@ vi.mock('../useSerial', () => ({
     connect: vi.fn(async () => {}),
     disconnect: vi.fn(async () => {}),
     onLine: vi.fn(() => {}),
+    write: vi.fn(async () => {}),
+  })
+}))
+
+
+vi.mock('../useWebSocket', () => ({
+  useWebSocket: () => ({
+    state: { isConnected: false, isConnecting: false, error: null },
+    connect: vi.fn(async () => {}),
+    disconnect: vi.fn(() => {}),
+    write: vi.fn(async () => {}),
   })
 }))
 

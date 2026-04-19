@@ -55,3 +55,27 @@ You can modify the sketch to:
 - **Stop Bits**: 1
 - **Parity**: None
 - **Flow Control**: None
+
+## esp32_websocket_ultrasonic.ino
+
+Contoh ESP32 yang terkoneksi ke WebSocket server lokal (laptop pada WiFi yang sama), lalu:
+- Mengirim data ultrasonic dalam **cm** dan **inch**
+- Menerima perintah `LED_ON` dan `LED_OFF`
+
+### Kebutuhan
+- Library Arduino: `WebSockets` by Markus Sattler
+- Sensor HC-SR04
+- WebSocket server Python lokal (`tools/local_ws_server.py`)
+
+### Alur singkat
+1. Jalankan server Python di laptop: `python tools/local_ws_server.py --host 0.0.0.0 --port 8765`
+2. Set `WS_HOST` di sketch ke IP laptop (contoh `192.168.1.10`)
+3. Upload sketch ke ESP32
+4. Di aplikasi web, buka **Connect → WebSocket**, isi `ws://IP_LAPTOP:8765`
+5. Untuk kontrol LED, kirim perintah dari tab Console:
+   - `LED_ON`
+   - `LED_OFF`
+
+Data yang dikirim ke plotter:
+- Header: `# distance_cm distance_in`
+- Sampel: `23.45 9.23`

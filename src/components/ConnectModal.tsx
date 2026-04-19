@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { XMarkIcon, WifiIcon, SignalIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, WifiIcon, SignalIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 import Button from './ui/Button'
 import Input from './ui/Input'
 import Select from './ui/Select'
 import Checkbox from './ui/Checkbox'
-import type { SerialConfig, ConnectionType } from '../hooks/useDataConnection'
+import type { SerialConfig, WebSocketConfig, ConnectionType } from '../hooks/useDataConnection'
 import type { GeneratorConfig } from '../hooks/useSignalGenerator'
 import { DEFAULT_SERIAL_CONFIG } from '../hooks/useDataConnection'
 
@@ -12,6 +12,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onConnectSerial: (config: SerialConfig) => Promise<void>
+  onConnectWebSocket: (config: WebSocketConfig) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
   isConnecting: boolean
   isSupported: boolean
@@ -24,6 +25,7 @@ export function ConnectModal({
   isOpen,
   onClose,
   onConnectSerial,
+  onConnectWebSocket,
   onConnectGenerator,
   isConnecting,
   isSupported,
@@ -32,12 +34,23 @@ export function ConnectModal({
   const [activeTab, setActiveTab] = useState<ConnectionType>('serial')
   const [serialConfig, setSerialConfig] = useState<SerialConfig>(DEFAULT_SERIAL_CONFIG)
   const [localGeneratorConfig, setLocalGeneratorConfig] = useState<GeneratorConfig>(generatorConfig)
+  const [websocketConfig, setWebsocketConfig] = useState<WebSocketConfig>({ url: 'ws://localhost:8765' })
 
   if (!isOpen) return null
 
   const handleSerialConnect = async () => {
     try {
       await onConnectSerial(serialConfig)
+      onClose()
+    } catch {
+      // Keep modal open on error so user can try again
+    }
+  }
+
+
+  const handleWebSocketConnect = async () => {
+    try {
+      await onConnectWebSocket(websocketConfig)
       onClose()
     } catch {
       // Keep modal open on error so user can try again
@@ -79,6 +92,17 @@ export function ConnectModal({
           >
             <WifiIcon className="w-4 h-4" />
             Serial Port
+          </button>
+          <button
+            onClick={() => setActiveTab('websocket')}
+            className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+              activeTab === 'websocket'
+                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <GlobeAltIcon className="w-4 h-4" />
+            WebSocket
           </button>
           <button
             onClick={() => setActiveTab('generator')}
@@ -174,6 +198,31 @@ export function ConnectModal({
                   className="w-full"
                 >
                   {isConnecting ? 'Connecting...' : 'Connect Serial Port'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'websocket' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">WebSocket URL</label>
+                <Input
+                  type="text"
+                  value={websocketConfig.url}
+                  onChange={(e) => setWebsocketConfig(prev => ({ ...prev, url: e.target.value }))}
+                  placeholder="ws://localhost:8765"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-neutral-700">
+                <Button
+                  variant="primary"
+                  onClick={handleWebSocketConnect}
+                  disabled={isConnecting || websocketConfig.url.trim().length === 0}
+                  className="w-full"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect WebSocket'}
                 </Button>
               </div>
             </div>

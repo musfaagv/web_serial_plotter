@@ -18,11 +18,13 @@ describe('Header', () => {
   it('shows Connect when disconnected and opens modal on click', () => {
     const onDisconnect = vi.fn()
     const onConnectSerial = vi.fn(async () => {})
+    const onConnectWebSocket = vi.fn(async () => {})
     const onConnectGenerator = vi.fn(async () => {})
     render(
       <Header
         connectionState={baseState}
         onConnectSerial={onConnectSerial}
+        onConnectWebSocket={onConnectWebSocket}
         onConnectGenerator={onConnectGenerator}
         onDisconnect={onDisconnect}
         generatorConfig={genCfg}
@@ -39,6 +41,7 @@ describe('Header', () => {
       <Header
         connectionState={{ ...baseState, isConnected: true, type: 'serial' }}
         onConnectSerial={async () => {}}
+        onConnectWebSocket={async () => {}}
         onConnectGenerator={async () => {}}
         onDisconnect={onDisconnect}
         generatorConfig={genCfg}
@@ -48,6 +51,19 @@ describe('Header', () => {
     fireEvent.click(btn)
     expect(onDisconnect).toHaveBeenCalled()
   })
-})
 
+  it('shows WebSocket Connected when websocket is active', () => {
+    render(
+      <Header
+        connectionState={{ ...baseState, isConnected: true, type: 'websocket' }}
+        onConnectSerial={async () => {}}
+        onConnectWebSocket={async () => {}}
+        onConnectGenerator={async () => {}}
+        onDisconnect={async () => {}}
+        generatorConfig={genCfg}
+      />
+    )
+    expect(screen.getByRole('button', { name: /websocket connected/i })).toBeInTheDocument()
+  })
+})
 

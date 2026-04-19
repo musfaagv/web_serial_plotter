@@ -55,3 +55,65 @@ You can modify the sketch to:
 - **Stop Bits**: 1
 - **Parity**: None
 - **Flow Control**: None
+## websocket_ultrasonic/websocket_ultrasonic.ino + websocket_ultrasonic/server.py
+
+Contoh lengkap komunikasi **ESP32 ↔ WebSocket server Python** untuk:
+- Mengirim data sensor ultrasonic dalam **cm** dan **inch**.
+- Menerima perintah untuk **LED ON/OFF** dari server.
+
+### Arsitektur singkat
+
+1. ESP32 membaca sensor HC-SR04 (TRIG + ECHO).
+2. ESP32 menghitung jarak cm dan inch.
+3. ESP32 kirim data JSON ke server Python lewat WebSocket.
+4. Server dapat kirim command `on` / `off` untuk mengontrol LED ESP32.
+
+### Format pesan
+
+ESP32 ke server:
+
+```json
+{"type":"sensor","cm":123.40,"inch":48.58,"led":true}
+```
+
+Server ke ESP32:
+
+```json
+{"type":"command","led":"on"}
+{"type":"command","led":"off"}
+```
+
+### Menjalankan server Python
+
+```bash
+cd example_firmware/websocket_ultrasonic
+python3 -m venv .venv
+source .venv/bin/activate
+pip install websockets
+python server.py --host 0.0.0.0 --port 8765
+```
+
+Perintah di terminal server:
+- `on`  → LED ON di semua client
+- `off` → LED OFF di semua client
+- `list` → lihat jumlah client aktif
+- `help` → bantuan
+- `exit` → keluar server
+
+### Upload sketch ESP32
+
+1. Install library **WebSockets** (Markus Sattler) di Arduino IDE.
+2. Buka `websocket_ultrasonic.ino`.
+3. Ubah `WIFI_SSID`, `WIFI_PASSWORD`, dan `WS_HOST` sesuai jaringan Anda.
+4. Upload ke ESP32.
+5. Buka Serial Monitor (115200 baud) untuk melihat log kirim/terima data.
+
+### Catatan wiring HC-SR04
+
+Contoh default di sketch:
+- TRIG → GPIO 5
+- ECHO → GPIO 18
+- VCC → 5V
+- GND → GND
+
+> Catatan: ECHO HC-SR04 biasanya 5V. Gunakan level shifter atau pembagi tegangan ke 3.3V agar aman untuk GPIO ESP32.

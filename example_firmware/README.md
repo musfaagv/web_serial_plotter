@@ -64,6 +64,11 @@ Firmware example for ESP32 + HC-SR04 that sends ultrasonic data over WebSocket a
 
 Path: `example_firmware/esp32_ws_ultrasonic/esp32_ws_ultrasonic.ino`
 
+
+Panduan langkah-demi-langkah berbahasa Indonesia tersedia di:
+
+- `example_firmware/PANDUAN_ESP32_WS_ULTRASONIC_ID.md`
+
 ### 1) Konfigurasi SSID / Password Wi‑Fi
 
 Edit bagian berikut di sketch:

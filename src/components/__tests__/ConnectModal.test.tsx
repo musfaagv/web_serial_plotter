@@ -13,6 +13,7 @@ describe('ConnectModal', () => {
         isOpen
         onClose={noop}
         onConnectSerial={async () => {}}
+        onConnectWebSocket={async () => {}}
         onConnectGenerator={async () => {}}
         isConnecting={false}
         isSupported={true}
@@ -22,7 +23,9 @@ describe('ConnectModal', () => {
     expect(screen.getByText(/connect data source/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /signal generator/i }))
     expect(screen.getByText(/signal type/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /websocket/i }))
+    expect(screen.getByText(/websocket url/i)).toBeInTheDocument()
   })
 })
-
 

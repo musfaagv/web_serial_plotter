@@ -19,11 +19,13 @@ describe('Header', () => {
     const onDisconnect = vi.fn()
     const onConnectSerial = vi.fn(async () => {})
     const onConnectGenerator = vi.fn(async () => {})
+    const onConnectWebSocket = vi.fn(async () => {})
     render(
       <Header
         connectionState={baseState}
         onConnectSerial={onConnectSerial}
         onConnectGenerator={onConnectGenerator}
+        onConnectWebSocket={onConnectWebSocket}
         onDisconnect={onDisconnect}
         generatorConfig={genCfg}
       />
@@ -40,6 +42,7 @@ describe('Header', () => {
         connectionState={{ ...baseState, isConnected: true, type: 'serial' }}
         onConnectSerial={async () => {}}
         onConnectGenerator={async () => {}}
+        onConnectWebSocket={async () => {}}
         onDisconnect={onDisconnect}
         generatorConfig={genCfg}
       />

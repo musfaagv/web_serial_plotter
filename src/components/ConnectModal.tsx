@@ -1,18 +1,19 @@
 import { useState } from 'react'
-import { XMarkIcon, WifiIcon, SignalIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, WifiIcon, SignalIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 import Button from './ui/Button'
 import Input from './ui/Input'
 import Select from './ui/Select'
 import Checkbox from './ui/Checkbox'
-import type { SerialConfig, ConnectionType } from '../hooks/useDataConnection'
+import type { SerialConfig, ConnectionType, WebSocketConfig } from '../hooks/useDataConnection'
 import type { GeneratorConfig } from '../hooks/useSignalGenerator'
-import { DEFAULT_SERIAL_CONFIG } from '../hooks/useDataConnection'
+import { DEFAULT_SERIAL_CONFIG, DEFAULT_WEBSOCKET_CONFIG } from '../hooks/useDataConnection'
 
 interface Props {
   isOpen: boolean
   onClose: () => void
   onConnectSerial: (config: SerialConfig) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
+  onConnectWebSocket: (config: WebSocketConfig) => Promise<void>
   isConnecting: boolean
   isSupported: boolean
   generatorConfig: GeneratorConfig
@@ -25,12 +26,14 @@ export function ConnectModal({
   onClose,
   onConnectSerial,
   onConnectGenerator,
+  onConnectWebSocket,
   isConnecting,
   isSupported,
   generatorConfig
 }: Props) {
   const [activeTab, setActiveTab] = useState<ConnectionType>('serial')
   const [serialConfig, setSerialConfig] = useState<SerialConfig>(DEFAULT_SERIAL_CONFIG)
+  const [websocketConfig, setWebsocketConfig] = useState<WebSocketConfig>(DEFAULT_WEBSOCKET_CONFIG)
   const [localGeneratorConfig, setLocalGeneratorConfig] = useState<GeneratorConfig>(generatorConfig)
 
   if (!isOpen) return null
@@ -47,6 +50,15 @@ export function ConnectModal({
   const handleGeneratorConnect = async () => {
     try {
       await onConnectGenerator(localGeneratorConfig)
+      onClose()
+    } catch {
+      // Keep modal open on error so user can try again
+    }
+  }
+
+  const handleWebSocketConnect = async () => {
+    try {
+      await onConnectWebSocket(websocketConfig)
       onClose()
     } catch {
       // Keep modal open on error so user can try again
@@ -81,6 +93,17 @@ export function ConnectModal({
             Serial Port
           </button>
           <button
+            onClick={() => setActiveTab('websocket')}
+            className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+              activeTab === 'websocket'
+                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <GlobeAltIcon className="w-4 h-4" />
+            WebSocket
+          </button>
+          <button
             onClick={() => setActiveTab('generator')}
             className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
               activeTab === 'generator'
@@ -104,7 +127,7 @@ export function ConnectModal({
                   </p>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Baud Rate</label>
@@ -117,7 +140,7 @@ export function ConnectModal({
                     ))}
                   </Select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Data Bits</label>
                   <Select
@@ -130,7 +153,7 @@ export function ConnectModal({
                     <option value="8">8</option>
                   </Select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Stop Bits</label>
                   <Select
@@ -141,7 +164,7 @@ export function ConnectModal({
                     <option value="2">2</option>
                   </Select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Parity</label>
                   <Select
@@ -153,7 +176,7 @@ export function ConnectModal({
                     <option value="odd">Odd</option>
                   </Select>
                 </div>
-                
+
                 <div className="col-span-2">
                   <label className="block text-sm font-medium mb-2">Flow Control</label>
                   <Select
@@ -179,6 +202,35 @@ export function ConnectModal({
             </div>
           )}
 
+          {activeTab === 'websocket' && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+                Gunakan URL WebSocket lokal, contoh: <code>ws://localhost:8765</code>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">WebSocket URL</label>
+                <Input
+                  type="text"
+                  value={websocketConfig.url}
+                  onChange={(e) => setWebsocketConfig({ url: e.target.value })}
+                  placeholder="ws://localhost:8765"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-neutral-700">
+                <Button
+                  variant="primary"
+                  onClick={handleWebSocketConnect}
+                  disabled={isConnecting || websocketConfig.url.trim().length === 0}
+                  className="w-full"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect WebSocket'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'generator' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -186,9 +238,9 @@ export function ConnectModal({
                   <label className="block text-sm font-medium mb-2">Signal Type</label>
                   <Select
                     value={localGeneratorConfig.mode}
-                    onChange={(e) => setLocalGeneratorConfig(prev => ({ 
-                      ...prev, 
-                      mode: e.target.value as 'sine3' | 'noise' | 'ramp' 
+                    onChange={(e) => setLocalGeneratorConfig(prev => ({
+                      ...prev,
+                      mode: e.target.value as 'sine3' | 'noise' | 'ramp'
                     }))}
                   >
                     <option value="sine3">Sine Wave (3-phase)</option>
@@ -196,7 +248,7 @@ export function ConnectModal({
                     <option value="ramp">Ramp/Sawtooth</option>
                   </Select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Channels</label>
                   <Input
@@ -204,13 +256,13 @@ export function ConnectModal({
                     min={1}
                     max={8}
                     value={localGeneratorConfig.channels}
-                    onChange={(e) => setLocalGeneratorConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setLocalGeneratorConfig(prev => ({
+                      ...prev,
                       channels: Math.max(1, Math.min(8, parseInt(e.target.value) || 1))
                     }))}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Sample Rate (Hz)</label>
                   <Input
@@ -218,13 +270,13 @@ export function ConnectModal({
                     min={1}
                     max={1000}
                     value={localGeneratorConfig.sampleRateHz}
-                    onChange={(e) => setLocalGeneratorConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setLocalGeneratorConfig(prev => ({
+                      ...prev,
                       sampleRateHz: Math.max(1, parseInt(e.target.value) || 100)
                     }))}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Frequency (Hz)</label>
                   <Input
@@ -233,13 +285,13 @@ export function ConnectModal({
                     max={100}
                     step={0.1}
                     value={localGeneratorConfig.frequencyHz}
-                    onChange={(e) => setLocalGeneratorConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setLocalGeneratorConfig(prev => ({
+                      ...prev,
                       frequencyHz: Math.max(0.1, parseFloat(e.target.value) || 1)
                     }))}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Amplitude</label>
                   <Input
@@ -248,8 +300,8 @@ export function ConnectModal({
                     max={10}
                     step={0.1}
                     value={localGeneratorConfig.amplitude}
-                    onChange={(e) => setLocalGeneratorConfig(prev => ({ 
-                      ...prev, 
+                    onChange={(e) => setLocalGeneratorConfig(prev => ({
+                      ...prev,
                       amplitude: Math.max(0.1, parseFloat(e.target.value) || 1)
                     }))}
                   />
@@ -260,9 +312,9 @@ export function ConnectModal({
                 <label className="flex items-center gap-2">
                   <Checkbox
                     checked={localGeneratorConfig.includeHeader}
-                    onChange={(e) => setLocalGeneratorConfig(prev => ({ 
-                      ...prev, 
-                      includeHeader: e.target.checked 
+                    onChange={(e) => setLocalGeneratorConfig(prev => ({
+                      ...prev,
+                      includeHeader: e.target.checked
                     }))}
                   />
                   <span className="text-sm font-medium">Include series headers</span>

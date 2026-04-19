@@ -14,12 +14,15 @@ describe('ConnectModal', () => {
         onClose={noop}
         onConnectSerial={async () => {}}
         onConnectGenerator={async () => {}}
+        onConnectWebSocket={async () => {}}
         isConnecting={false}
         isSupported={true}
         generatorConfig={genConfig}
       />
     )
     expect(screen.getByText(/connect data source/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /websocket/i }))
+    expect(screen.getByText(/websocket url/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /signal generator/i }))
     expect(screen.getByText(/signal type/i)).toBeInTheDocument()
   })

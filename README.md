@@ -68,9 +68,9 @@ Your support helps maintain and improve this tool for the entire community!
 - Built-in signal generator for testing (sine, noise, ramp)
 - Configurable sample rates and amplitudes
 
-✅ **Serial Console**
+✅ **Serial & WebSocket Console**
 - Dual-tab interface (Chart/Console views)
-- Bidirectional communication with serial devices
+- Bidirectional communication with serial/WebSocket devices
 - Send text commands to devices
 - View raw incoming/outgoing data streams
 - Message export in multiple formats (TXT, CSV, JSON)
@@ -142,6 +142,19 @@ Your device should send lines of numeric data:
 - **Screenshot**: Use camera button to export PNG images
 - **Series**: Click legend entries to edit names and colors
 - **Console**: Switch to Console tab to send commands and view raw data
+
+
+
+### WebSocket Connection (Local Server)
+You can also connect via WebSocket (for example, ESP32 over WiFi through a local Python relay):
+1. Start local server:
+   ```bash
+   pip install websockets
+   python tools/local_ws_server.py --host 0.0.0.0 --port 8765
+   ```
+2. In the app, click **Connect → WebSocket**.
+3. Enter URL such as `ws://localhost:8765` (or `ws://<laptop-ip>:8765`).
+4. Send commands from the **Console** tab, e.g. `LED_ON` / `LED_OFF`.
 
 ### Built-in Signal Generator
 For testing without hardware:

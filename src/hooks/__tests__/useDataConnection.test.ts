@@ -8,9 +8,21 @@ vi.mock('../useSerial', () => ({
     connect: vi.fn(async () => {}),
     disconnect: vi.fn(async () => {}),
     onLine: vi.fn(() => {}),
+    write: vi.fn(async () => {}),
   })
 }))
 
+
+vi.mock('../useWebSocket', () => ({
+  useWebSocket: () => ({
+    state: { isConnecting: false, isConnected: false, error: null, url: null },
+    connect: vi.fn(async () => {}),
+    disconnect: vi.fn(async () => {}),
+    write: vi.fn(async () => {}),
+    onMessage: vi.fn(() => {}),
+    setAutoReconnect: vi.fn(() => {}),
+  })
+}))
 vi.mock('../useSignalGenerator', () => ({
   useSignalGenerator: (onEmit: (line: string) => void) => {
     let running = false

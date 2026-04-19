@@ -1,6 +1,7 @@
-import { useCallback, useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useSerial } from './useSerial'
 import { useSignalGenerator, type GeneratorConfig } from './useSignalGenerator'
+import { useWebSocket } from './useWebSocket'
 
 export interface SerialConfig {
   baudRate: number
@@ -48,46 +49,43 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
   const [connectionType, setConnectionType] = useState<ConnectionType | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false)
-  const websocketRef = useRef<WebSocket | null>(null)
-
 
   const serial = useSerial()
+  const websocket = useWebSocket()
   const generator = useSignalGenerator(onLine)
 
   const state: ConnectionState = {
     type: connectionType,
-    isConnecting: isConnecting || serial.state.isConnecting,
-    isConnected: serial.state.isConnected || generator.isRunning || isWebSocketConnected,
+    isConnecting: isConnecting || serial.state.isConnecting || websocket.state.isConnecting,
+    isConnected: serial.state.isConnected || generator.isRunning || websocket.state.isConnected,
     isSupported: serial.state.isSupported || typeof WebSocket !== 'undefined',
-    error: error || serial.state.error
+    error: error || serial.state.error || websocket.state.error
   }
 
-
   const connectSerial = useCallback(async (config: SerialConfig) => {
+    if (websocket.state.isConnected || websocket.state.isConnecting) {
+      await websocket.disconnect()
+    }
+
     if (generator.isRunning) {
       generator.stop()
     }
-    
+
     setIsConnecting(true)
     setError(null)
-    
+
     try {
-      // Convert our config to the format useSerial expects
-      // Note: Web Serial API has limited configuration options
       await serial.connect(config.baudRate)
       setConnectionType('serial')
-      // The actual port configuration would need to be done at the port.open() level
-      // For now, we'll just use baudRate as useSerial currently does
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to serial port'
       setError(message)
       setConnectionType(null)
-      throw err // Re-throw so ConnectModal knows the connection failed
+      throw err
     } finally {
       setIsConnecting(false)
     }
-  }, [serial, generator])
+  }, [serial, websocket, generator])
 
   const connectWebSocket = useCallback(async (config: WebSocketConfig) => {
     if (serial.state.isConnected) {
@@ -98,67 +96,36 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
       generator.stop()
     }
 
-    if (websocketRef.current) {
-      websocketRef.current.close()
-      websocketRef.current = null
-    }
+    websocket.setAutoReconnect(Boolean(config.autoReconnect))
 
     setIsConnecting(true)
     setError(null)
 
     try {
-      const ws = new WebSocket(config.url)
-      websocketRef.current = ws
-
-      await new Promise<void>((resolve, reject) => {
-        ws.onopen = () => {
-          setConnectionType('websocket')
-          setIsWebSocketConnected(true)
-          resolve()
-        }
-
-        ws.onerror = () => {
-          reject(new Error('Failed to connect to WebSocket'))
-        }
-
-        ws.onmessage = (event) => {
-          const data = typeof event.data === 'string' ? event.data : String(event.data)
-          data
-            .split(/\r?\n/)
-            .map(line => line.trim())
-            .filter(Boolean)
-            .forEach(onLine)
-        }
-
-        ws.onclose = () => {
-          setIsWebSocketConnected(false)
-          if (config.autoReconnect) {
-            setError('WebSocket disconnected (auto reconnect is not implemented yet)')
-          }
-          if (connectionType === 'websocket') {
-            setConnectionType(null)
-          }
-        }
-      })
+      await websocket.connect(config.url)
+      setConnectionType('websocket')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect WebSocket'
       setError(message)
-      setIsWebSocketConnected(false)
       setConnectionType(null)
       throw err
     } finally {
       setIsConnecting(false)
     }
-  }, [serial, generator, onLine, connectionType])
+  }, [serial, generator, websocket])
 
   const connectGenerator = useCallback(async (config: GeneratorConfig) => {
     if (serial.state.isConnected) {
       await serial.disconnect()
     }
-    
+
+    if (websocket.state.isConnected || websocket.state.isConnecting) {
+      await websocket.disconnect()
+    }
+
     setError(null)
     setConnectionType('generator')
-    
+
     try {
       generator.setConfig(config)
       generator.start()
@@ -167,55 +134,43 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
       setError(message)
       setConnectionType(null)
     }
-  }, [serial, generator])
+  }, [serial, websocket, generator])
 
   const disconnect = useCallback(async () => {
     setError(null)
-    
+
     if (serial.state.isConnected) {
       await serial.disconnect()
     }
-    
+
     if (generator.isRunning) {
       generator.stop()
     }
 
-    if (websocketRef.current) {
-      websocketRef.current.close()
-      websocketRef.current = null
-      setIsWebSocketConnected(false)
+    if (websocket.state.isConnected || websocket.state.isConnecting) {
+      await websocket.disconnect()
     }
-    
-    setConnectionType(null)
-  }, [serial, generator])
 
-  // Set up serial line handler
+    setConnectionType(null)
+  }, [serial, websocket, generator])
+
   useEffect(() => {
     serial.onLine(onLine)
-  }, [serial, onLine])
+    websocket.onMessage(onLine)
+  }, [serial, websocket, onLine])
 
   const write = useCallback(async (data: string) => {
     if (connectionType === 'websocket') {
-      if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
-        throw new Error('WebSocket not connected')
-      }
-      websocketRef.current.send(data)
+      await websocket.write(data)
       return
     }
 
     if (connectionType !== 'serial' || !serial.state.isConnected) {
       throw new Error('No active writable connection')
     }
-    await serial.write(data)
-  }, [connectionType, serial])
 
-  useEffect(() => {
-    return () => {
-      if (websocketRef.current) {
-        websocketRef.current.close()
-      }
-    }
-  }, [])
+    await serial.write(data)
+  }, [connectionType, serial, websocket])
 
   return {
     state,

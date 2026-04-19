@@ -55,3 +55,77 @@ You can modify the sketch to:
 - **Stop Bits**: 1
 - **Parity**: None
 - **Flow Control**: None
+
+---
+
+## esp32_ws_ultrasonic.ino
+
+Firmware example for ESP32 + HC-SR04 that sends ultrasonic data over WebSocket and receives LED commands.
+
+Path: `example_firmware/esp32_ws_ultrasonic/esp32_ws_ultrasonic.ino`
+
+### 1) Konfigurasi SSID / Password Wi‑Fi
+
+Edit bagian berikut di sketch:
+
+```cpp
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+```
+
+### 2) Set IP laptop untuk WebSocket server
+
+Pastikan IP laptop sesuai jaringan lokal, lalu edit:
+
+```cpp
+const char* WS_HOST = "192.168.1.100";
+const uint16_t WS_PORT = 8765;
+```
+
+Server URL lengkap yang dituju ESP32: `ws://<IP_LAPTOP>:8765`
+
+### 3) Pin ultrasonic + LED
+
+Default pin mapping di sketch:
+
+- `PIN_TRIG = GPIO5`
+- `PIN_ECHO = GPIO18`
+- `PIN_LED = GPIO2`
+
+Silakan ubah jika board Anda berbeda.
+
+### 4) Format payload kirim / terima
+
+**Payload sensor (ESP32 -> server/web):**
+
+```json
+{"type":"ultrasonic","cm":123.4,"inch":48.6,"ts":1710000000}
+```
+
+**Payload command LED (web -> server -> ESP32):**
+
+```json
+{"type":"led","state":"on"}
+{"type":"led","state":"off"}
+```
+
+### 5) Dependensi library Arduino
+
+Install dari Arduino Library Manager:
+
+- `ArduinoJson`
+- `WebSockets` (WebSocketsClient)
+
+### 6) Jalankan contoh WebSocket server Python
+
+Masuk ke folder server:
+
+```bash
+cd example_websocket_server
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python server.py
+```
+
+Server listen di `ws://0.0.0.0:8765`.

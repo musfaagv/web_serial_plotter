@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ESP32 Ultrasonic Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 1.5rem;
+        max-width: 760px;
+        margin-inline: auto;
+      }
+      .card {
+        border: 1px solid #8884;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      .row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      input {
+        min-width: 300px;
+        flex: 1;
+        padding: 0.5rem;
+      }
+      button {
+        padding: 0.55rem 0.8rem;
+        border-radius: 8px;
+        border: 1px solid #7776;
+        cursor: pointer;
+      }
+      .ok { color: #0a8f3e; }
+      .bad { color: #c62828; }
+      pre {
+        border: 1px solid #8884;
+        border-radius: 8px;
+        padding: 0.75rem;
+        max-height: 230px;
+        overflow: auto;
+      }
+      .metrics {
+        font-size: 1.1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ESP32 Ultrasonic WebSocket Dashboard</h1>
+
+    <div class="card">
+      <div class="row">
+        <label for="wsUrl">WebSocket URL:</label>
+        <input id="wsUrl" value="ws://10.54.93.165:8765" />
+      </div>
+      <div class="row" style="margin-top: 0.75rem">
+        <button id="connectBtn">Connect</button>
+        <button id="disconnectBtn">Disconnect</button>
+        <span id="status" class="bad">Disconnected</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Kontrol LED ESP32</h3>
+      <div class="row">
+        <button id="onBtn">LED ON</button>
+        <button id="offBtn">LED OFF</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Data Sensor Terbaru</h3>
+      <div class="metrics">
+        <div>Jarak (cm): <strong id="cm">-</strong></div>
+        <div>Jarak (inch): <strong id="inch">-</strong></div>
+        <div>Status LED: <strong id="led">-</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Log</h3>
+      <pre id="log"></pre>
+    </div>
+
+    <script>
+      let ws;
+
+      const wsUrl = document.getElementById("wsUrl");
+      const connectBtn = document.getElementById("connectBtn");
+      const disconnectBtn = document.getElementById("disconnectBtn");
+      const onBtn = document.getElementById("onBtn");
+      const offBtn = document.getElementById("offBtn");
+      const statusEl = document.getElementById("status");
+      const cmEl = document.getElementById("cm");
+      const inchEl = document.getElementById("inch");
+      const ledEl = document.getElementById("led");
+      const logEl = document.getElementById("log");
+
+      function log(msg) {
+        const ts = new Date().toLocaleTimeString();
+        logEl.textContent += `[${ts}] ${msg}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setStatus(text, connected) {
+        statusEl.textContent = text;
+        statusEl.className = connected ? "ok" : "bad";
+      }
+
+      function connect() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          log("Sudah terkoneksi.");
+          return;
+        }
+
+        ws = new WebSocket(wsUrl.value.trim());
+
+        ws.addEventListener("open", () => {
+          setStatus("Connected", true);
+          log(`Connected ke ${wsUrl.value}`);
+        });
+
+        ws.addEventListener("close", () => {
+          setStatus("Disconnected", false);
+          log("Koneksi ditutup");
+        });
+
+        ws.addEventListener("error", (event) => {
+          setStatus("Error", false);
+          log(`WebSocket error: ${event.type}`);
+        });
+
+        ws.addEventListener("message", (event) => {
+          log(`RX: ${event.data}`);
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "sensor") {
+              cmEl.textContent = data.cm;
+              inchEl.textContent = data.inch;
+              ledEl.textContent = data.led ? "ON" : "OFF";
+            }
+          } catch {
+            // ignore non-json payload
+          }
+        });
+      }
+
+      function disconnect() {
+        if (ws) ws.close();
+      }
+
+      function sendLed(state) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          log("Belum connected ke server.");
+          return;
+        }
+
+        const payload = JSON.stringify({ type: "command", led: state });
+        ws.send(payload);
+        log(`TX: ${payload}`);
+      }
+
+      connectBtn.addEventListener("click", connect);
+      disconnectBtn.addEventListener("click", disconnect);
+      onBtn.addEventListener("click", () => sendLed("on"));
+      offBtn.addEventListener("click", () => sendLed("off"));
+    </script>
+  </body>
+</html>

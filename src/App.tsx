@@ -143,6 +143,7 @@ function App() {
           connectionState={dataConnection.state}
           onConnectSerial={dataConnection.connectSerial}
           onConnectGenerator={dataConnection.connectGenerator}
+          onConnectWebSocket={dataConnection.connectWebSocket}
           onDisconnect={dataConnection.disconnect}
           generatorConfig={dataConnection.generatorConfig}
         />

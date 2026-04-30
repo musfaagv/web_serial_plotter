@@ -2,13 +2,14 @@ import { useState } from 'react'
 import Button from './ui/Button'
 import { PlayIcon, StopIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import ConnectModal from './ConnectModal'
-import type { ConnectionState, ConnectionType, SerialConfig } from '../hooks/useDataConnection'
+import type { ConnectionState, ConnectionType, SerialConfig, WebSocketConfig } from '../hooks/useDataConnection'
 import type { GeneratorConfig } from '../hooks/useSignalGenerator'
 
 interface Props {
   connectionState: ConnectionState
   onConnectSerial: (config: SerialConfig) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
+  onConnectWebSocket: (config: WebSocketConfig) => Promise<void>
   onDisconnect: () => Promise<void>
   generatorConfig: GeneratorConfig
 }
@@ -17,6 +18,7 @@ function getConnectionIcon(type: ConnectionType | null, isConnected: boolean) {
   if (!isConnected) return <PlayIcon className="w-4 h-4" />
   if (type === 'serial') return <StopIcon className="w-4 h-4" />
   if (type === 'generator') return <StopIcon className="w-4 h-4" />
+  if (type === 'websocket') return <StopIcon className="w-4 h-4" />
   return <StopIcon className="w-4 h-4" />
 }
 
@@ -25,9 +27,9 @@ function getConnectionText(state: ConnectionState) {
   if (state.isConnected) {
     if (state.type === 'serial') return 'Serial Connected'
     if (state.type === 'generator') return 'Generator Running'
+    if (state.type === 'websocket') return 'WebSocket Connected'
     return 'Connected'
   }
-  if (!state.isSupported) return 'Serial Unsupported'
   if (state.error) return 'Connection Error'
   return 'Connect'
 }
@@ -41,7 +43,8 @@ function getButtonVariant(state: ConnectionState) {
 export function Header({ 
   connectionState, 
   onConnectSerial, 
-  onConnectGenerator, 
+  onConnectGenerator,
+  onConnectWebSocket,
   onDisconnect, 
   generatorConfig 
 }: Props) {
@@ -89,6 +92,7 @@ export function Header({
         onClose={() => setShowModal(false)}
         onConnectSerial={onConnectSerial}
         onConnectGenerator={onConnectGenerator}
+        onConnectWebSocket={onConnectWebSocket}
         isConnecting={connectionState.isConnecting}
         isSupported={connectionState.isSupported}
         generatorConfig={generatorConfig}
